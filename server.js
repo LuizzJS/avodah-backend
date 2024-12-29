@@ -11,7 +11,7 @@ const app = express();
 
 const allowedOrigin =
   process.env.NODE_ENV === "production"
-    ? "https://yourfrontend.com"
+    ? "https://frontend-snowy-iota-95.vercel.app"
     : "http://localhost:5173";
 
 app.use(
