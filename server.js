@@ -4,10 +4,10 @@ import cors from "cors";
 import express from "express";
 import authRoutes from "./routes/routes.js";
 import { connectDB } from "./database/connect.js";
-dotenv.config({ path: ".env" });
+
+dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 const allowedOrigin =
   process.env.NODE_ENV === "production"
@@ -25,8 +25,6 @@ app.use(cookieParser());
 app.use(express.json());
 app.use("/api/auth", authRoutes);
 
-app.listen(PORT, () => {
-  console.clear();
-  console.log(`[SERVER] Connected successfully: http://localhost:${PORT}`);
-  connectDB();
-});
+connectDB();
+
+export default app;
