@@ -9,10 +9,10 @@ dotenv.config({ path: "../.env" });
 
 const app = express();
 
-const allowedOrigin =
-  process.env.NODE_ENV === "production"
-    ? "https://frontend-snowy-iota-95.vercel.app"
-    : "http://localhost:5173";
+const allowedOrigin = [
+  "https://frontend-snowy-iota-95.vercel.app",
+  "http://localhost:5173",
+];
 
 app.use(
   cors({
