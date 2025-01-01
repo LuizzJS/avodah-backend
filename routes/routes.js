@@ -12,6 +12,7 @@ import {
   getUserInfo,
   getPost,
   removePost,
+  generateVerse,
 } from "../controllers/auth.controller.js";
 
 const router = express.Router();
@@ -27,6 +28,7 @@ router.post("/posts", sendPost);
 router.post("/posts/remove/:postId", removePost);
 router.get("/posts", getAllPosts);
 router.get("/posts/:postId", getPost);
+router.get("/generateVerse", generateVerse);
 
 router.get("/getUser", getUserInfo);
 router.get("/isLogged", isLogged);

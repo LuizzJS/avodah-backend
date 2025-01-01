@@ -15,7 +15,6 @@ export const connectDB = async () => {
     console.clear();
     console.error("[DATABASE] Connection failed:");
     console.error(`Error Message: ${error.message}`);
-    console.error(`Stack Trace: ${error.stack}`);
     process.exit(1);
   }
 };

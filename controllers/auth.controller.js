@@ -5,7 +5,9 @@ import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-dotenv.config({ path: "../../.env" });
+import path from "path";
+import axios from "axios";
+dotenv.config({ path: path.resolve(".env") });
 
 const roles = {
   developer: 0,
@@ -47,20 +49,18 @@ export const login = async (req, res) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
     });
-    res
-      .status(200)
-      .json({
-        message: "Usuário logado com sucesso.",
-        success: true,
-        token,
-        data: {
-          id: user._id,
-          username: user.username,
-          email: user.email,
-          role: user.role,
-          rolePosition: user.rolePosition,
-        },
-      });
+    res.status(200).json({
+      message: "Usuário logado com sucesso.",
+      success: true,
+      token,
+      data: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        rolePosition: user.rolePosition,
+      },
+    });
   } catch (error) {
     res
       .status(500)
@@ -72,12 +72,10 @@ export const register = async (req, res) => {
   const { username, email, password } = req.body;
   try {
     if (!username || !email || !password)
-      return res
-        .status(400)
-        .json({
-          message: "Todos os campos devem ser preenchidos.",
-          success: false,
-        });
+      return res.status(400).json({
+        message: "Todos os campos devem ser preenchidos.",
+        success: false,
+      });
     const usernameExists = await User.findOne({
       username: username.toLowerCase(),
     });
@@ -95,13 +93,11 @@ export const register = async (req, res) => {
       rolePosition: roles["membro"],
     });
     await user.save();
-    res
-      .status(201)
-      .json({
-        message: "Usuário criado com sucesso.",
-        success: true,
-        data: { ...user._doc, password: undefined },
-      });
+    res.status(201).json({
+      message: "Usuário criado com sucesso.",
+      success: true,
+      data: { ...user._doc, password: undefined },
+    });
   } catch (error) {
     res
       .status(500)
@@ -110,18 +106,16 @@ export const register = async (req, res) => {
 };
 
 export const isLogged = async (req, res) => {
-  const token = localStorage.getItem("token") || req.cookies.token;
+  const token = req.cookies.token;
   if (!token) return res.status(401).json({ success: false });
   try {
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
     const user = await User.findById(decoded.id);
-    res
-      .status(200)
-      .json({
-        message: "Usuário autenticado com sucesso.",
-        success: true,
-        data: { ...user._doc, password: undefined },
-      });
+    res.status(200).json({
+      message: "Usuário autenticado com sucesso.",
+      success: true,
+      data: { ...user._doc, password: undefined },
+    });
   } catch (error) {
     res
       .status(401)
@@ -133,10 +127,10 @@ export const logout = async (req, res) => {
   try {
     res.clearCookie("token", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       sameSite: "strict",
     });
-    localStorage.removeItem("token");
+
     res
       .status(200)
       .json({ message: "Usuário deslogado com sucesso.", success: true });
@@ -171,7 +165,7 @@ export const setPassword = async (req, res) => {
 };
 
 export const setRole = async (req, res) => {
-  const token = localStorage.getItem("token") || req.cookies.token;
+  const token = req.cookies.token;
   const { role, email } = req.body;
   try {
     if (!token)
@@ -202,13 +196,11 @@ export const setRole = async (req, res) => {
       .status(200)
       .json({ message: "Cargo atualizado com sucesso.", success: true });
   } catch (error) {
-    return res
-      .status(500)
-      .json({
-        message: "Erro interno no servidor.",
-        error: error.message,
-        success: false,
-      });
+    return res.status(500).json({
+      message: "Erro interno no servidor.",
+      error: error.message,
+      success: false,
+    });
   }
 };
 
@@ -283,5 +275,24 @@ export const removePost = async (req, res) => {
     res.status(200).json({ message: "Post deleted successfully", ok: true });
   } catch (error) {
     res.status(500).json({ message: "Failed to delete post" });
+  }
+};
+
+export const generateVerse = async (req, res) => {
+  try {
+    const response = await axios.get(
+      "https://bible-api.com/?random=verse&translation=almeida"
+    );
+    if (response.status !== 200)
+      res.status(400).json({
+        message: "Failed to generate verse.",
+        success: false,
+        data: null,
+      });
+
+    return res.status(200).json({ data: response.data, success: true });
+  } catch (error) {
+    console.error("Error generating verse:", error);
+    return { success: false, message: "Failed to generate verse." };
   }
 };
