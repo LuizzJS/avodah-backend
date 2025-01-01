@@ -23,7 +23,7 @@ export const login = async (req, res) => {
     const user = await User.findOne({ username: username.toLowerCase() });
     if (!user)
       return res
-        .status(401)
+        .status(400)
         .json({ message: "Usuário não encontrado.", success: false });
     if (!password)
       return res
@@ -106,8 +106,8 @@ export const register = async (req, res) => {
 };
 
 export const isLogged = async (req, res) => {
-  const token = req.cookies.token;
-  if (!token) return res.status(401).json({ success: false });
+  const token = localStorage.getItem("token") || req.cookies.token;
+  if (!token) return res.status(400).json({ success: false });
   try {
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
     const user = await User.findById(decoded.id);
@@ -130,6 +130,7 @@ export const logout = async (req, res) => {
       secure: true,
       sameSite: "strict",
     });
+    localStorage.removeItem("token");
 
     res
       .status(200)
@@ -165,7 +166,7 @@ export const setPassword = async (req, res) => {
 };
 
 export const setRole = async (req, res) => {
-  const token = req.cookies.token;
+  const token = localStorage.getItem("token") || req.cookies.token;
   const { role, email } = req.body;
   try {
     if (!token)
