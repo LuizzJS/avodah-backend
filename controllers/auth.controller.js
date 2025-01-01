@@ -1,7 +1,7 @@
 import { User } from "../models/user.model.js";
 import { Post } from "../models/post.model.js";
 import { MailtrapClient } from "mailtrap";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
