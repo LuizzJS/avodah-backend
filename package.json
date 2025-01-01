@@ -13,7 +13,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "bcrypt": "latest",
+    "bcryptjs": "latest",
     "cookie-parser": "latest",
     "cors": "latest",
     "dotenv": "latest",
