@@ -18,6 +18,7 @@ const corsOptions = {
   origin: "https://avodahsite.vercel.app",
   methods: "GET,POST,PUT,DELETE",
   allowedHeaders: ["Content-Type", "Authorization"],
+  withCredentials: true,
 };
 
 app.use(cors(corsOptions));
