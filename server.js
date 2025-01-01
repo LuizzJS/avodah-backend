@@ -14,14 +14,14 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const allowedOrigin = process.env.CLIENT_URL || "http://localhost:5173";
+const corsOptions = {
+  origin: "https://avodahsite.vercel.app",
+  methods: "GET,POST,PUT,DELETE",
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 
-app.use(
-  cors({
-    origin: allowedOrigin,
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
+
 app.use(cookieParser());
 app.use(express.json());
 app.use("/api/auth", authRoutes);
