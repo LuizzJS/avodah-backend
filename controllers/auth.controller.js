@@ -63,9 +63,12 @@ export const login = async (req, res) => {
       },
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Erro interno no servidor.", success: false });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
+    console.log(error);
   }
 };
 
@@ -101,9 +104,12 @@ export const register = async (req, res) => {
       data: { ...user._doc, password: undefined },
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Erro interno no servidor.", success: false });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
+    console.log(error);
   }
 };
 
@@ -139,9 +145,12 @@ export const logout = async (req, res) => {
       .status(200)
       .json({ message: "Usuário deslogado com sucesso.", success: true });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Erro ao deslogar o usuário.", success: false });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
+    console.log(error);
   }
 };
 
@@ -163,9 +172,12 @@ export const setPassword = async (req, res) => {
       .status(200)
       .json({ message: "Senha atualizada com sucesso.", success: true });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Erro interno no servidor.", success: false });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
+    console.log(error);
   }
 };
 
@@ -202,11 +214,12 @@ export const setRole = async (req, res) => {
       .status(200)
       .json({ message: "Cargo atualizado com sucesso.", success: true });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "Erro interno no servidor.",
-      error: error.message,
       success: false,
+      error: error.message,
     });
+    console.log(error);
   }
 };
 
@@ -225,7 +238,12 @@ export const sendReport = async (req, res) => {
     });
     res.status(200).send({ message: "Email sent successfully!" });
   } catch (error) {
-    res.status(500).send({ error: "Failed to send email." });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
+    console.log(error);
   }
 };
 
@@ -238,7 +256,12 @@ export const getUserInfo = async (req, res) => {
       return res.status(404).json({ message: "Usuário não encontrado." });
     return { ok: true, user: user };
   } catch (error) {
-    res.status(500).json({ message: "Erro ao buscar o usuário." });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
+    console.log(error);
   }
 };
 
@@ -251,7 +274,12 @@ export const sendPost = async (req, res) => {
     await newPost.save();
     res.status(201).json(newPost);
   } catch (error) {
-    res.status(500).json({ message: "Failed to create post" });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
+    console.log(error);
   }
 };
 
@@ -261,7 +289,12 @@ export const getAllPosts = async (req, res) => {
     const posts = await Post.find().sort({ createdAt: -1 });
     res.status(200).json(posts);
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch posts" });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
+    console.log(error);
   }
 };
 
@@ -273,7 +306,12 @@ export const getPost = async (req, res) => {
     if (!post) return res.status(404).json({ message: "Post not found" });
     res.status(200).json(post);
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch post" });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
+    console.log(error);
   }
 };
 
@@ -286,7 +324,12 @@ export const removePost = async (req, res) => {
     await Post.deleteOne({ postId: postId });
     res.status(200).json({ message: "Post deleted successfully", ok: true });
   } catch (error) {
-    res.status(500).json({ message: "Failed to delete post" });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
+    console.log(error);
   }
 };
 
@@ -306,6 +349,11 @@ export const generateVerse = async (req, res) => {
     return res.status(200).json({ data: response.data, success: true });
   } catch (error) {
     console.error("Error generating verse:", error);
-    return { success: false, message: "Failed to generate verse." };
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
+    console.log(error);
   }
 };
