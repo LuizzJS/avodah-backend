@@ -48,7 +48,7 @@ export const login = async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "None",
     });
     res.status(200).json({
       message: "Usuário logado com sucesso.",
@@ -116,6 +116,7 @@ export const register = async (req, res) => {
 export const isLogged = async (req, res) => {
   res.set("Access-Control-Allow-Origin", "https://avodahsite.vercel.app");
   const token = req.cookies.token;
+
   if (!token) return res.status(401).json({ success: false });
   try {
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
@@ -138,7 +139,7 @@ export const logout = async (req, res) => {
     res.clearCookie("token", {
       httpOnly: true,
       secure: true,
-      sameSite: "strict",
+      sameSite: "None",
     });
 
     res
