@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import path from "path";
 import axios from "axios";
+
 dotenv.config({ path: path.resolve(".env") });
 
 const roles = {
@@ -18,7 +19,6 @@ const roles = {
 };
 
 export const login = async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "https://avodahsite.vercel.app");
   const { username, password } = req.body;
   try {
     const user = await User.findOne({ username: username.toLowerCase() });
@@ -45,6 +45,7 @@ export const login = async (req, res) => {
       },
       process.env.SECRET_KEY
     );
+    localStorage.setItem("token", token);
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -73,7 +74,6 @@ export const login = async (req, res) => {
 };
 
 export const register = async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "https://avodahsite.vercel.app");
   const { username, email, password } = req.body;
   try {
     if (!username || !email || !password)
@@ -114,7 +114,6 @@ export const register = async (req, res) => {
 };
 
 export const isLogged = async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "https://avodahsite.vercel.app");
   const token = req.cookies.token;
 
   if (!token) return res.status(401).json({ success: false });
@@ -134,7 +133,6 @@ export const isLogged = async (req, res) => {
 };
 
 export const logout = async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "https://avodahsite.vercel.app");
   try {
     res.clearCookie("token", {
       httpOnly: true,
@@ -156,7 +154,6 @@ export const logout = async (req, res) => {
 };
 
 export const setPassword = async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "https://avodahsite.vercel.app");
   const { password, email } = req.body;
   try {
     const user = await User.findOne({ email: email.toLowerCase() });
@@ -183,7 +180,6 @@ export const setPassword = async (req, res) => {
 };
 
 export const setRole = async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "https://avodahsite.vercel.app");
   const token = req.cookies.token;
   const { role, email } = req.body;
   try {
@@ -225,7 +221,6 @@ export const setRole = async (req, res) => {
 };
 
 export const sendReport = async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "https://avodahsite.vercel.app");
   const { name, email, description } = req.body;
   const client = new MailtrapClient({
     token: "6a53c66ece2120782e097e5cfb94d353",
@@ -249,7 +244,6 @@ export const sendReport = async (req, res) => {
 };
 
 export const getUserInfo = async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "https://avodahsite.vercel.app");
   const { id } = req.query;
   try {
     const user = await User.findOne({ username: id });
@@ -267,7 +261,6 @@ export const getUserInfo = async (req, res) => {
 };
 
 export const sendPost = async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "https://avodahsite.vercel.app");
   const { title, content, author, authorId } = req.body;
   const postId = uuidv4();
   try {
@@ -285,7 +278,6 @@ export const sendPost = async (req, res) => {
 };
 
 export const getAllPosts = async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "https://avodahsite.vercel.app");
   try {
     const posts = await Post.find().sort({ createdAt: -1 });
     res.status(200).json(posts);
@@ -300,7 +292,6 @@ export const getAllPosts = async (req, res) => {
 };
 
 export const getPost = async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "https://avodahsite.vercel.app");
   const postId = req.params.postId;
   try {
     const post = await Post.findOne({ postId: postId });
@@ -317,7 +308,6 @@ export const getPost = async (req, res) => {
 };
 
 export const removePost = async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "https://avodahsite.vercel.app");
   const postId = req.params.postId;
   try {
     const post = await Post.findOne({ postId: postId });
@@ -335,7 +325,6 @@ export const removePost = async (req, res) => {
 };
 
 export const generateVerse = async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "https://avodahsite.vercel.app");
   try {
     const response = await axios.get(
       "https://bible-api.com/?random=verse&translation=almeida"
@@ -349,7 +338,6 @@ export const generateVerse = async (req, res) => {
 
     return res.status(200).json({ data: response.data, success: true });
   } catch (error) {
-    console.error("Error generating verse:", error);
     res.status(500).json({
       message: "Erro interno no servidor.",
       success: false,
