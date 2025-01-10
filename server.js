@@ -4,7 +4,6 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import { connectDB } from "./database/connect.js";
 import authRoutes from "./routes/routes.js";
-import morgan from "morgan";
 
 dotenv.config();
 
@@ -20,7 +19,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(morgan("dev"));
 app.use(cookieParser());
 app.use(express.json());
 
