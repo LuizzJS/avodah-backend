@@ -11,32 +11,25 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 const corsOptions = {
-  origin: ["https://avodahsite.vercel.app", "http://localhost:5173"],
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      "https://avodahsite.vercel.app",
+      "http://localhost:5173",
+    ];
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   methods: "GET,POST,PUT,DELETE",
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };
 
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", [
-    "https://avodahsite.vercel.app",
-    "http://localhost:5173",
-  ]);
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-
-  next();
-});
-
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
-
 app.use("/api/auth", authRoutes);
 
 connectDB();
