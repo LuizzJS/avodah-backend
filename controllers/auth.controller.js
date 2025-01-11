@@ -45,7 +45,7 @@ export const login = async (req, res) => {
       },
       process.env.SECRET_KEY
     );
-    localStorage.setItem("token", token);
+
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
