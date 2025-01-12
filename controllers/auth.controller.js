@@ -264,7 +264,14 @@ export const sendPost = async (req, res) => {
   const { title, content, author, authorId } = req.body;
   const postId = uuidv4();
   try {
-    const newPost = new Post({ title, content, author, authorId, postId });
+    const newPost = new Post({
+      title,
+      content,
+      author,
+      authorId,
+      postId,
+      image: req.file.path,
+    });
     await newPost.save();
     res.status(201).json(newPost);
   } catch (error) {
