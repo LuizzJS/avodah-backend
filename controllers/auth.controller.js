@@ -334,9 +334,9 @@ export const removePost = async (req, res) => {
 export const generateVerse = async (req, res) => {
   try {
     const response = await axios.get(
-      "https://bolls.life/get-random-verse/NVIPT",
-      { withCredentials: true }
+      "https://bolls.life/get-random-verse/NVIPT"
     );
+    console.log(response.json());
 
     if (response.status !== 200)
       res.status(400).json({
