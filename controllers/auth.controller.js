@@ -336,9 +336,8 @@ export const generateVerse = async (req, res) => {
     const response = await axios.get(
       "https://bolls.life/get-random-verse/NVIPT"
     );
-    console.log(response.data);
 
-    if (response.status !== 200)
+    if (!response.data.pk)
       res.status(400).json({
         message: "Failed to generate verse.",
         success: false,
