@@ -334,8 +334,9 @@ export const removePost = async (req, res) => {
 export const generateVerse = async (req, res) => {
   try {
     const response = await axios.get(
-      "https://bible-api.com/?random=verse&translation=almeida"
+      "https://bolls.life/get-random-verse/NVIPT"
     );
+
     if (response.status !== 200)
       res.status(400).json({
         message: "Failed to generate verse.",
