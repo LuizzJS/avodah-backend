@@ -336,7 +336,7 @@ export const generateVerse = async (req, res) => {
     const response = await axios.get(
       "https://bolls.life/get-random-verse/NVIPT"
     );
-    console.log(response.json());
+    console.log(response);
 
     if (response.status !== 200)
       res.status(400).json({
