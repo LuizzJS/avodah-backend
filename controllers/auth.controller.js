@@ -335,18 +335,31 @@ export const generateVerse = async (req, res) => {
   try {
     const response = await fetch("https://bolls.life/get-random-verse/NVIPT", {
       method: "GET",
-      headers: ["Authorization"],
-      credentials: true,
+      headers: {
+        Authorization: "Bearer YOUR_TOKEN",
+      },
+      credentials: "include",
     });
 
-    if (!response.data.pk)
-      res.status(400).json({
+    if (!response.ok) {
+      return res.status(400).json({
         message: "Failed to generate verse.",
         success: false,
         data: null,
       });
+    }
 
-    return res.status(200).json({ data: response.data, success: true });
+    const data = await response.json();
+
+    if (!data.pk) {
+      return res.status(400).json({
+        message: "Failed to generate verse.",
+        success: false,
+        data: null,
+      });
+    }
+
+    return res.status(200).json({ data: data, success: true });
   } catch (error) {
     res.status(500).json({
       message: "Erro interno no servidor.",
