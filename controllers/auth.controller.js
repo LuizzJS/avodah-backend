@@ -335,9 +335,6 @@ export const generateVerse = async (req, res) => {
   try {
     const response = await fetch("https://bolls.life/get-random-verse/NVIPT", {
       method: "GET",
-      headers: {
-        Authorization: "Bearer YOUR_TOKEN",
-      },
       credentials: "include",
     });
 
