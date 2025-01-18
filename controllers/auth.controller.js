@@ -15,7 +15,18 @@ const roles = {
   pastor: 1,
   vicepastor: 2,
   secretaria: 3,
-  membro: 4,
+  lider: 4,
+  social: 5,
+  membro: 6,
+};
+const cargos = {
+  0: "Desenvolvedor",
+  1: "Pastor Presidente",
+  2: "Pastor Vice-Presidente",
+  3: "Secretário/a",
+  4: "Líder",
+  5: "Influenciador",
+  6: "Membro",
 };
 
 export const login = async (req, res) => {
@@ -59,7 +70,7 @@ export const login = async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
-        role: user.role,
+        role: cargos[user.rolePosition],
         rolePosition: user.rolePosition,
       },
     });
@@ -94,7 +105,7 @@ export const register = async (req, res) => {
       username: username.toLowerCase(),
       email: email.toLowerCase(),
       password: hashedPassword,
-      role: "membro",
+      role: cargos[roles["membro"]],
       rolePosition: roles["membro"],
     });
     await user.save();
