@@ -6,7 +6,6 @@ import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import path from "path";
-import axios from "axios";
 
 dotenv.config({ path: path.resolve(".env") });
 
@@ -18,7 +17,7 @@ const roles = {
   lider: 4,
   social: 5,
   membro: 6,
-};
+}; // Cargos Literais & Posições
 const cargos = {
   0: "Desenvolvedor",
   1: "Pastor Presidente",
@@ -27,7 +26,7 @@ const cargos = {
   4: "Líder",
   5: "Influenciador",
   6: "Membro",
-};
+}; // Nome dos cargos
 
 export const login = async (req, res) => {
   const { username, password } = req.body;
@@ -238,7 +237,10 @@ export const sendReport = async (req, res) => {
   });
   try {
     await client.send({
-      from: { name: "Avodah Church", email: "mailtrap@demomailtrap.com" },
+      from: {
+        name: "Avodah | Error Report",
+        email: "mailtrap@demomailtrap.com",
+      },
       to: [{ email: "luizz.developer@gmail.com" }],
       subject: "New Error Report!",
       text: `Name: ${name}\nEmail: ${email}\nDescription: ${description}`,
