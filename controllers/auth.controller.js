@@ -299,20 +299,18 @@ export const sendReport = async (req, res) => {
       },
       to: [{ email: "luizz.developer@gmail.com" }],
       subject: "Novo Relatório de Erro!",
-      html: htmlContent, // Use the HTML content here
-      text: `Name: ${name}\nEmail: ${email}\nDescription: ${description}`, // Keep text version for compatibility
+      html: htmlContent,
+      text: `Name: ${name}\nEmail: ${email}\nDescription: ${description}`,
     });
 
     res.status(200).send({ message: "Email enviado com sucesso!" });
   } catch (error) {
     console.error("Erro ao enviar email:", error);
-    res
-      .status(500)
-      .json({
-        message: "Erro interno no servidor.",
-        success: false,
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
   }
 };
 
