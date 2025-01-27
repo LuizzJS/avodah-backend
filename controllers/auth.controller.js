@@ -165,7 +165,18 @@ export const logout = async (req, res) => {
 
 export const setPassword = async (req, res) => {
   const { password, email } = req.body;
+  const token = req.cookies.token;
   try {
+    if (!token)
+      return res
+        .status(401)
+        .json({ message: "Não autorizado.", success: false });
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const loggedUser = await User.findById(decoded.id);
+    if (loggedUser.rolePosition === 0)
+      return res
+        .status(403)
+        .json({ message: "Usuário sem permissão.", success: false });
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user)
       return res
