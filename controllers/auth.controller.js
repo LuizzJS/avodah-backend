@@ -163,38 +163,60 @@ export const logout = async (req, res) => {
 export const setPassword = async (req, res) => {
   const token = req.cookies.token;
   const { password, email } = req.body;
+
+  if (!token) {
+    return res.status(401).json({
+      message: "Não autorizado. Token não encontrado.",
+      success: false,
+    });
+  }
+
+  if (!email || !password) {
+    return res
+      .status(400)
+      .json({ message: "Email e senha são obrigatórios.", success: false });
+  }
+
   try {
-    if (!token)
-      return res
-        .status(401)
-        .json({ message: "Não autorizado.", success: false });
+    // Verify token and decode user info
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
     const loggedUser = await User.findById(decoded.id);
+
+    if (!loggedUser) {
+      return res
+        .status(401)
+        .json({ message: "Usuário não autenticado.", success: false });
+    }
+
     if (loggedUser.rolePosition < roles["pastor"]) {
       return res
         .status(403)
         .json({ message: "Usuário sem permissão.", success: false });
     }
+
     const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user)
+    if (!user) {
       return res
         .status(404)
         .json({ message: "Usuário não encontrado.", success: false });
+    }
+
     const newPassword = await bcrypt.hash(password, 10);
-    await User.updateOne(
+    await User.findOneAndUpdate(
       { email: email.toLowerCase() },
       { $set: { password: newPassword } }
     );
-    res
+
+    return res
       .status(200)
       .json({ message: "Senha atualizada com sucesso.", success: true });
   } catch (error) {
-    res.status(500).json({
+    console.error("Error updating password:", error);
+    return res.status(500).json({
       message: "Erro interno no servidor.",
       success: false,
       error: error.message,
     });
-    console.log(error);
   }
 };
 
