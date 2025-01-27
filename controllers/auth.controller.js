@@ -73,13 +73,11 @@ export const login = async (req, res) => {
       },
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Erro interno no servidor.",
-        success: false,
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
     console.log(error);
   }
 };
@@ -88,12 +86,10 @@ export const register = async (req, res) => {
   const { username, email, password } = req.body;
   try {
     if (!username || !email || !password)
-      return res
-        .status(400)
-        .json({
-          message: "Todos os campos devem ser preenchidos.",
-          success: false,
-        });
+      return res.status(400).json({
+        message: "Todos os campos devem ser preenchidos.",
+        success: false,
+      });
     const usernameExists = await User.findOne({
       username: username.toLowerCase(),
     });
@@ -111,21 +107,17 @@ export const register = async (req, res) => {
       rolePosition: roles["membro"],
     });
     await user.save();
-    res
-      .status(201)
-      .json({
-        message: "Usuário criado com sucesso.",
-        success: true,
-        data: { ...user._doc, password: undefined },
-      });
+    res.status(201).json({
+      message: "Usuário criado com sucesso.",
+      success: true,
+      data: { ...user._doc, password: undefined },
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Erro interno no servidor.",
-        success: false,
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
     console.log(error);
   }
 };
@@ -136,13 +128,11 @@ export const isLogged = async (req, res) => {
   try {
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
     const user = await User.findById(decoded.id);
-    res
-      .status(200)
-      .json({
-        message: "Usuário autenticado com sucesso.",
-        success: true,
-        data: { ...user._doc, password: undefined },
-      });
+    res.status(200).json({
+      message: "Usuário autenticado com sucesso.",
+      success: true,
+      data: { ...user._doc, password: undefined },
+    });
   } catch (error) {
     res
       .status(401)
@@ -161,13 +151,11 @@ export const logout = async (req, res) => {
       .status(200)
       .json({ message: "Usuário deslogado com sucesso.", success: true });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Erro interno no servidor.",
-        success: false,
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
     console.log(error);
   }
 };
@@ -201,13 +189,11 @@ export const setPassword = async (req, res) => {
       .status(200)
       .json({ message: "Senha atualizada com sucesso.", success: true });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Erro interno no servidor.",
-        success: false,
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
     console.log(error);
   }
 };
@@ -244,34 +230,82 @@ export const setRole = async (req, res) => {
       .status(200)
       .json({ message: "Cargo atualizado com sucesso.", success: true });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Erro interno no servidor.",
-        success: false,
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
     console.log(error);
   }
 };
 
 export const sendReport = async (req, res) => {
   const { name, email, description } = req.body;
-  const client = new MailtrapClient({
-    token: "6a53c66ece2120782e097e5cfb94d353",
-  });
+  const client = new MailtrapClient({ token: process.env.MAILTRAP_TOKEN }); // Use environment variable!
+
   try {
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="pt-br">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Relatório de Erro</title>
+        <style>
+          body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            color: #333;
+          }
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+          }
+          h1 {
+            color: #007bff;
+          }
+          .field {
+            margin-bottom: 10px;
+          }
+          .label {
+            font-weight: bold;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>Novo Relatório de Erro</h1>
+          <div class="field">
+            <span class="label">Nome:</span> ${name}
+          </div>
+          <div class="field">
+            <span class="label">Email:</span> ${email}
+          </div>
+          <div class="field">
+            <span class="label">Descrição:</span><br>
+            <p>${description.replace(/\n/g, "<br>")}</p> </div>
+        </div>
+      </body>
+      </html>
+    `;
+
     await client.send({
       from: {
         name: "Avodah | Error Report",
         email: "mailtrap@demomailtrap.com",
       },
       to: [{ email: "luizz.developer@gmail.com" }],
-      subject: "New Error Report!",
-      text: `Name: ${name}\nEmail: ${email}\nDescription: ${description}`,
+      subject: "Novo Relatório de Erro!",
+      html: htmlContent, // Use the HTML content here
+      text: `Name: ${name}\nEmail: ${email}\nDescription: ${description}`, // Keep text version for compatibility
     });
-    res.status(200).send({ message: "Email sent successfully!" });
+
+    res.status(200).send({ message: "Email enviado com sucesso!" });
   } catch (error) {
+    console.error("Erro ao enviar email:", error);
     res
       .status(500)
       .json({
@@ -279,7 +313,6 @@ export const sendReport = async (req, res) => {
         success: false,
         error: error.message,
       });
-    console.log(error);
   }
 };
 
@@ -291,13 +324,11 @@ export const getUserInfo = async (req, res) => {
       return res.status(404).json({ message: "Usuário não encontrado." });
     return { ok: true, user: user };
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Erro interno no servidor.",
-        success: false,
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
     console.log(error);
   }
 };
@@ -317,13 +348,11 @@ export const sendPost = async (req, res) => {
     await newPost.save();
     res.status(201).json(newPost);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Erro interno no servidor.",
-        success: false,
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
     console.log(error);
   }
 };
@@ -333,13 +362,11 @@ export const getAllPosts = async (req, res) => {
     const posts = await Post.find().sort({ createdAt: -1 });
     res.status(200).json(posts);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Erro interno no servidor.",
-        success: false,
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
     console.log(error);
   }
 };
@@ -351,13 +378,11 @@ export const getPost = async (req, res) => {
     if (!post) return res.status(404).json({ message: "Post not found" });
     res.status(200).json(post);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Erro interno no servidor.",
-        success: false,
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
     console.log(error);
   }
 };
@@ -370,13 +395,11 @@ export const removePost = async (req, res) => {
     await Post.deleteOne({ postId: postId });
     res.status(200).json({ message: "Post deleted successfully", ok: true });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Erro interno no servidor.",
-        success: false,
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
     console.log(error);
   }
 };
@@ -388,33 +411,27 @@ export const generateVerse = async (req, res) => {
       credentials: "include",
     });
     if (!response.ok) {
-      return res
-        .status(400)
-        .json({
-          message: "Failed to generate verse.",
-          success: false,
-          data: null,
-        });
+      return res.status(400).json({
+        message: "Failed to generate verse.",
+        success: false,
+        data: null,
+      });
     }
     const data = await response.json();
     if (!data.pk) {
-      return res
-        .status(400)
-        .json({
-          message: "Failed to generate verse.",
-          success: false,
-          data: null,
-        });
+      return res.status(400).json({
+        message: "Failed to generate verse.",
+        success: false,
+        data: null,
+      });
     }
     return res.status(200).json({ data: data, success: true });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Erro interno no servidor.",
-        success: false,
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
     console.log(error);
   }
 };
