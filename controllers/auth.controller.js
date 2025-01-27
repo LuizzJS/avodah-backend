@@ -17,7 +17,7 @@ const roles = {
   lider: 4,
   social: 5,
   membro: 6,
-}; // Cargos Literais & Posições
+};
 const cargos = {
   0: "Desenvolvedor",
   1: "Pastor Presidente",
@@ -26,7 +26,7 @@ const cargos = {
   4: "Líder",
   5: "Influenciador",
   6: "Membro",
-}; // Nome dos cargos
+};
 
 export const login = async (req, res) => {
   const { username, password } = req.body;
@@ -55,7 +55,6 @@ export const login = async (req, res) => {
       },
       process.env.SECRET_KEY
     );
-
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -74,11 +73,13 @@ export const login = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({
+        message: "Erro interno no servidor.",
+        success: false,
+        error: error.message,
+      });
     console.log(error);
   }
 };
@@ -87,10 +88,12 @@ export const register = async (req, res) => {
   const { username, email, password } = req.body;
   try {
     if (!username || !email || !password)
-      return res.status(400).json({
-        message: "Todos os campos devem ser preenchidos.",
-        success: false,
-      });
+      return res
+        .status(400)
+        .json({
+          message: "Todos os campos devem ser preenchidos.",
+          success: false,
+        });
     const usernameExists = await User.findOne({
       username: username.toLowerCase(),
     });
@@ -108,33 +111,38 @@ export const register = async (req, res) => {
       rolePosition: roles["membro"],
     });
     await user.save();
-    res.status(201).json({
-      message: "Usuário criado com sucesso.",
-      success: true,
-      data: { ...user._doc, password: undefined },
-    });
+    res
+      .status(201)
+      .json({
+        message: "Usuário criado com sucesso.",
+        success: true,
+        data: { ...user._doc, password: undefined },
+      });
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({
+        message: "Erro interno no servidor.",
+        success: false,
+        error: error.message,
+      });
     console.log(error);
   }
 };
 
 export const isLogged = async (req, res) => {
   const token = req.cookies.token;
-
   if (!token) return res.status(401).json({ success: false });
   try {
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
     const user = await User.findById(decoded.id);
-    res.status(200).json({
-      message: "Usuário autenticado com sucesso.",
-      success: true,
-      data: { ...user._doc, password: undefined },
-    });
+    res
+      .status(200)
+      .json({
+        message: "Usuário autenticado com sucesso.",
+        success: true,
+        data: { ...user._doc, password: undefined },
+      });
   } catch (error) {
     res
       .status(401)
@@ -149,23 +157,24 @@ export const logout = async (req, res) => {
       secure: true,
       sameSite: "None",
     });
-
     res
       .status(200)
       .json({ message: "Usuário deslogado com sucesso.", success: true });
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({
+        message: "Erro interno no servidor.",
+        success: false,
+        error: error.message,
+      });
     console.log(error);
   }
 };
 
 export const setPassword = async (req, res) => {
-  const { password, email } = req.body;
   const token = req.cookies.token;
+  const { password, email } = req.body;
   try {
     if (!token)
       return res
@@ -173,10 +182,11 @@ export const setPassword = async (req, res) => {
         .json({ message: "Não autorizado.", success: false });
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
     const loggedUser = await User.findById(decoded.id);
-    if (loggedUser.rolePosition === 0)
+    if (loggedUser.rolePosition < roles["pastor"]) {
       return res
         .status(403)
         .json({ message: "Usuário sem permissão.", success: false });
+    }
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user)
       return res
@@ -191,11 +201,13 @@ export const setPassword = async (req, res) => {
       .status(200)
       .json({ message: "Senha atualizada com sucesso.", success: true });
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({
+        message: "Erro interno no servidor.",
+        success: false,
+        error: error.message,
+      });
     console.log(error);
   }
 };
@@ -232,11 +244,13 @@ export const setRole = async (req, res) => {
       .status(200)
       .json({ message: "Cargo atualizado com sucesso.", success: true });
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({
+        message: "Erro interno no servidor.",
+        success: false,
+        error: error.message,
+      });
     console.log(error);
   }
 };
@@ -258,11 +272,13 @@ export const sendReport = async (req, res) => {
     });
     res.status(200).send({ message: "Email sent successfully!" });
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({
+        message: "Erro interno no servidor.",
+        success: false,
+        error: error.message,
+      });
     console.log(error);
   }
 };
@@ -275,11 +291,13 @@ export const getUserInfo = async (req, res) => {
       return res.status(404).json({ message: "Usuário não encontrado." });
     return { ok: true, user: user };
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({
+        message: "Erro interno no servidor.",
+        success: false,
+        error: error.message,
+      });
     console.log(error);
   }
 };
@@ -299,11 +317,13 @@ export const sendPost = async (req, res) => {
     await newPost.save();
     res.status(201).json(newPost);
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({
+        message: "Erro interno no servidor.",
+        success: false,
+        error: error.message,
+      });
     console.log(error);
   }
 };
@@ -313,11 +333,13 @@ export const getAllPosts = async (req, res) => {
     const posts = await Post.find().sort({ createdAt: -1 });
     res.status(200).json(posts);
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({
+        message: "Erro interno no servidor.",
+        success: false,
+        error: error.message,
+      });
     console.log(error);
   }
 };
@@ -329,11 +351,13 @@ export const getPost = async (req, res) => {
     if (!post) return res.status(404).json({ message: "Post not found" });
     res.status(200).json(post);
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({
+        message: "Erro interno no servidor.",
+        success: false,
+        error: error.message,
+      });
     console.log(error);
   }
 };
@@ -346,11 +370,13 @@ export const removePost = async (req, res) => {
     await Post.deleteOne({ postId: postId });
     res.status(200).json({ message: "Post deleted successfully", ok: true });
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({
+        message: "Erro interno no servidor.",
+        success: false,
+        error: error.message,
+      });
     console.log(error);
   }
 };
@@ -361,32 +387,34 @@ export const generateVerse = async (req, res) => {
       method: "GET",
       credentials: "include",
     });
-
     if (!response.ok) {
-      return res.status(400).json({
-        message: "Failed to generate verse.",
-        success: false,
-        data: null,
-      });
+      return res
+        .status(400)
+        .json({
+          message: "Failed to generate verse.",
+          success: false,
+          data: null,
+        });
     }
-
     const data = await response.json();
-
     if (!data.pk) {
-      return res.status(400).json({
-        message: "Failed to generate verse.",
-        success: false,
-        data: null,
-      });
+      return res
+        .status(400)
+        .json({
+          message: "Failed to generate verse.",
+          success: false,
+          data: null,
+        });
     }
-
     return res.status(200).json({ data: data, success: true });
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({
+        message: "Erro interno no servidor.",
+        success: false,
+        error: error.message,
+      });
     console.log(error);
   }
 };
