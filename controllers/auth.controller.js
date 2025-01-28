@@ -178,14 +178,17 @@ export const setPassword = async (req, res) => {
   }
 
   try {
-    // Verify token and decode user info
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
     const loggedUser = await User.findById(decoded.id);
 
     if (!loggedUser) {
       return res
         .status(401)
-        .json({ message: "Usuário não autenticado.", success: false });
+        .json({
+          message: "Usuário não autenticado.",
+          success: false,
+          loggedUser,
+        });
     }
 
     if (loggedUser.rolePosition < roles["pastor"]) {
