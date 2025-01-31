@@ -233,15 +233,14 @@ export const setRole = async (req, res) => {
         .json({ message: "Não autorizado.", success: false });
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
     const loggedUser = await User.findById(decoded.id);
-    if (loggedUser.rolePosition >= 4)
-      // Assuming 4 is the highest role position
+    if (loggedUser.rolePosition === 0)
       return res
         .status(403)
         .json({ message: "Usuário sem permissão.", success: false });
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user)
       return res
-        .status(404) // Consistent with setPassword
+        .status(404)
         .json({ message: "Usuário não encontrado.", success: false });
     const normalizedRole = role?.toLowerCase();
     if (!Object.keys(roles).includes(normalizedRole))
@@ -256,7 +255,7 @@ export const setRole = async (req, res) => {
       .status(200)
       .json({ message: "Cargo atualizado com sucesso.", success: true });
   } catch (error) {
-    console.error(error); // Log the error for debugging
+    console.error(error);
     return res.status(500).json({
       // Added return
       message: "Erro interno no servidor.",
