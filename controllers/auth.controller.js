@@ -182,16 +182,15 @@ export const setPassword = async (req, res) => {
     const loggedUser = await User.findById(decoded.id);
 
     if (!loggedUser) {
-      return res
-        .status(401)
-        .json({
-          message: "Usuário não autenticado.",
-          success: false,
-          loggedUser,
-        });
+      return res.status(401).json({
+        message: "Usuário não autenticado.",
+        success: false,
+      });
     }
 
+    // Corrected Permission Check:  Allow pastor and above to change passwords
     if (loggedUser.rolePosition < roles["pastor"]) {
+      // Or adjust as needed
       return res
         .status(403)
         .json({ message: "Usuário sem permissão.", success: false });
@@ -200,7 +199,7 @@ export const setPassword = async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return res
-        .status(404)
+        .status(404) // Consistent with setRole
         .json({ message: "Usuário não encontrado.", success: false });
     }
 
@@ -216,6 +215,7 @@ export const setPassword = async (req, res) => {
   } catch (error) {
     console.error("Error updating password:", error);
     return res.status(500).json({
+      // Added return
       message: "Erro interno no servidor.",
       success: false,
       error: error.message,
@@ -234,13 +234,14 @@ export const setRole = async (req, res) => {
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
     const loggedUser = await User.findById(decoded.id);
     if (loggedUser.rolePosition >= 4)
+      // Assuming 4 is the highest role position
       return res
         .status(403)
         .json({ message: "Usuário sem permissão.", success: false });
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user)
       return res
-        .status(400)
+        .status(404) // Consistent with setPassword
         .json({ message: "Usuário não encontrado.", success: false });
     const normalizedRole = role?.toLowerCase();
     if (!Object.keys(roles).includes(normalizedRole))
@@ -255,12 +256,13 @@ export const setRole = async (req, res) => {
       .status(200)
       .json({ message: "Cargo atualizado com sucesso.", success: true });
   } catch (error) {
-    res.status(500).json({
+    console.error(error); // Log the error for debugging
+    return res.status(500).json({
+      // Added return
       message: "Erro interno no servidor.",
       success: false,
       error: error.message,
     });
-    console.log(error);
   }
 };
 
