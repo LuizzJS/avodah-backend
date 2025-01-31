@@ -189,7 +189,7 @@ export const setPassword = async (req, res) => {
     }
 
     // Corrected Permission Check:  Allow pastor and above to change passwords
-    if (loggedUser.rolePosition < roles["pastor"]) {
+    if (loggedUser.rolePosition !== 0) {
       // Or adjust as needed
       return res
         .status(403)
@@ -257,7 +257,6 @@ export const setRole = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({
-      // Added return
       message: "Erro interno no servidor.",
       success: false,
       error: error.message,
