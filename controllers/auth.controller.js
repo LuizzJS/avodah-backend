@@ -356,6 +356,30 @@ export const getUserInfo = async (req, res) => {
   }
 };
 
+export const setProfilePicture = async (req, res) => {
+  try {
+    const { user, picture } = req.body;
+    const existingUser = await User.findOne({ email: user.email });
+    if (!existingUser)
+      return res.status(404).json({ message: "Usuário não encontrado." });
+
+    await User.updateOne({ email: user.email }, { profilePicture: picture });
+    res.json({
+      message: "Foto de perfil atualizada com sucesso.",
+      success: true,
+    });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({
+        message: "Erro interno no servidor.",
+        success: false,
+        error: error.message,
+      });
+  }
+};
+
 export const sendPost = async (req, res) => {
   const { title, content, author, authorId } = req.body;
   const postId = uuidv4();
