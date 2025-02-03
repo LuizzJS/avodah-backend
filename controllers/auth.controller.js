@@ -255,7 +255,10 @@ export const setProfilePicture = async (req, res) => {
     )
       return res
         .status(400)
-        .json({ message: "Dados incompletos ou formato de imagem inválido." });
+        .json({
+          message: "Dados incompletos ou formato de imagem inválido.",
+          picture,
+        });
     const existingUser = await User.findOne({ email: user.email.trim() });
     if (!existingUser)
       return res.status(404).json({ message: "Usuário não encontrado." });
@@ -264,6 +267,7 @@ export const setProfilePicture = async (req, res) => {
       { profilePicture: picture },
       { new: true }
     );
+
     res.json({
       message: "Foto de perfil atualizada com sucesso.",
       success: true,
