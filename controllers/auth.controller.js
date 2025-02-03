@@ -251,9 +251,9 @@ export const setProfilePicture = async (req, res) => {
 
     if (
       !user ||
-      !user.email ||
+      !picture ||
       !trimmedPicture ||
-      !/^data:image\/(png|jpg|jpeg|gif|webp);base64,/.test(trimmedPicture)
+      !trimmedPicture.startsWith("data:image/")
     )
       return res.status(400).json({
         message: "Dados incompletos ou formato de imagem inválido.",
