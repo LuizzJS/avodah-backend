@@ -265,7 +265,7 @@ export const setProfilePicture = async (req, res) => {
       return res.status(404).json({ message: "Usuário não encontrado." });
 
     await User.findOneAndUpdate(
-      { email: user.email.trim() },
+      { email: user.email },
       { profilePicture: trimmedPicture },
       { new: true }
     );
