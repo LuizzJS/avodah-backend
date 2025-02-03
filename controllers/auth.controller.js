@@ -247,7 +247,7 @@ export const getUserInfo = async (req, res) => {
 export const setProfilePicture = async (req, res) => {
   const { user, picture } = req.body;
   try {
-    const trimmedPicture = picture.trim();
+    const trimmedPicture = String(picture).trim();
 
     if (
       !user ||
