@@ -1,5 +1,4 @@
-import { User } from "../models/user.model.js";
-import { Post } from "../models/post.model.js";
+import { User, Post } from "../models/index.js";
 import { MailtrapClient } from "mailtrap";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
@@ -28,23 +27,37 @@ const cargos = {
   6: "Membro",
 };
 
+const handleError = (res, error) => {
+  console.error(error);
+  res
+    .status(500)
+    .json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
+};
+
 export const login = async (req, res) => {
   const { username, password } = req.body;
   try {
     const user = await User.findOne({ username: username.toLowerCase() });
-    if (!user)
+    if (
+      !user ||
+      !password ||
+      !(await bcrypt.compare(password, user.password))
+    ) {
       return res
         .status(401)
-        .json({ message: "Usuário não encontrado.", success: false });
-    if (!password)
-      return res
-        .status(400)
-        .json({ message: "Senha não fornecida.", success: false });
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid)
-      return res
-        .status(401)
-        .json({ message: "Senha inválida.", success: false });
+        .json({
+          message: !user
+            ? "Usuário não encontrado."
+            : !password
+            ? "Senha não fornecida."
+            : "Senha inválida.",
+          success: false,
+        });
+    }
     const token = jwt.sign(
       {
         id: user._id,
@@ -60,25 +73,20 @@ export const login = async (req, res) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: "None",
     });
-    res.status(200).json({
-      message: "Usuário logado com sucesso.",
-      success: true,
-      token,
-      data: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: cargos[user.rolePosition],
-        rolePosition: user.rolePosition,
-      },
-    });
+    res
+      .status(200)
+      .json({
+        message: "Usuário logado com sucesso.",
+        success: true,
+        token,
+        data: {
+          ...user._doc,
+          password: undefined,
+          role: cargos[user.rolePosition],
+        },
+      });
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
-    console.log(error);
+    handleError(res, error);
   }
 };
 
@@ -86,53 +94,53 @@ export const register = async (req, res) => {
   const { username, email, password } = req.body;
   try {
     if (!username || !email || !password)
-      return res.status(400).json({
-        message: "Todos os campos devem ser preenchidos.",
-        success: false,
-      });
-    const usernameExists = await User.findOne({
-      username: username.toLowerCase(),
-    });
-    const emailExists = await User.findOne({ email: email.toLowerCase() });
-    if (usernameExists || emailExists)
+      return res
+        .status(400)
+        .json({
+          message: "Todos os campos devem ser preenchidos.",
+          success: false,
+        });
+    if (
+      await User.findOne({
+        $or: [
+          { username: username.toLowerCase() },
+          { email: email.toLowerCase() },
+        ],
+      })
+    )
       return res
         .status(400)
         .json({ message: "Usuário já existente.", success: false });
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({
+    const user = await User.create({
       username: username.toLowerCase(),
       email: email.toLowerCase(),
-      password: hashedPassword,
+      password: await bcrypt.hash(password, 10),
       role: cargos[roles["membro"]],
       rolePosition: roles["membro"],
     });
-    await user.save();
-    res.status(201).json({
-      message: "Usuário criado com sucesso.",
-      success: true,
-      data: { ...user._doc, password: undefined },
-    });
+    res
+      .status(201)
+      .json({
+        message: "Usuário criado com sucesso.",
+        success: true,
+        data: { ...user._doc, password: undefined },
+      });
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
-    console.log(error);
+    handleError(res, error);
   }
 };
 
 export const isLogged = async (req, res) => {
-  const token = req.cookies.token;
-  if (!token) return res.status(401).json({ success: false });
   try {
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const decoded = jwt.verify(req.cookies.token, process.env.SECRET_KEY);
     const user = await User.findById(decoded.id);
-    res.status(200).json({
-      message: "Usuário autenticado com sucesso.",
-      success: true,
-      data: { ...user._doc, password: undefined },
-    });
+    res
+      .status(200)
+      .json({
+        message: "Usuário autenticado com sucesso.",
+        success: true,
+        data: { ...user._doc, password: undefined },
+      });
   } catch (error) {
     res
       .status(401)
@@ -151,89 +159,16 @@ export const logout = async (req, res) => {
       .status(200)
       .json({ message: "Usuário deslogado com sucesso.", success: true });
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
-    console.log(error);
+    handleError(res, error);
   }
 };
 
 export const setPassword = async (req, res) => {
-  const token = req.cookies.token;
   const { password, email } = req.body;
-
-  if (!token) {
-    return res.status(401).json({
-      message: "Não autorizado. Token não encontrado.",
-      success: false,
-    });
-  }
-
-  if (!email || !password) {
-    return res
-      .status(400)
-      .json({ message: "Email e senha são obrigatórios.", success: false });
-  }
-
   try {
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const decoded = jwt.verify(req.cookies.token, process.env.SECRET_KEY);
     const loggedUser = await User.findById(decoded.id);
-
-    if (!loggedUser) {
-      return res.status(401).json({
-        message: "Usuário não autenticado.",
-        success: false,
-      });
-    }
-
-    // Corrected Permission Check:  Allow pastor and above to change passwords
-    if (loggedUser.rolePosition !== 0) {
-      // Or adjust as needed
-      return res
-        .status(403)
-        .json({ message: "Usuário sem permissão.", success: false });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      return res
-        .status(404) // Consistent with setRole
-        .json({ message: "Usuário não encontrado.", success: false });
-    }
-
-    const newPassword = await bcrypt.hash(password, 10);
-    await User.findOneAndUpdate(
-      { email: email.toLowerCase() },
-      { $set: { password: newPassword } }
-    );
-
-    return res
-      .status(200)
-      .json({ message: "Senha atualizada com sucesso.", success: true });
-  } catch (error) {
-    console.error("Error updating password:", error);
-    return res.status(500).json({
-      // Added return
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
-  }
-};
-
-export const setRole = async (req, res) => {
-  const token = req.cookies.token;
-  const { role, email } = req.body;
-  try {
-    if (!token)
-      return res
-        .status(401)
-        .json({ message: "Não autorizado.", success: false });
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
-    const loggedUser = await User.findById(decoded.id);
-    if (loggedUser.rolePosition === 0)
+    if (!loggedUser || loggedUser.rolePosition !== 0)
       return res
         .status(403)
         .json({ message: "Usuário sem permissão.", success: false });
@@ -242,81 +177,56 @@ export const setRole = async (req, res) => {
       return res
         .status(404)
         .json({ message: "Usuário não encontrado.", success: false });
-    const normalizedRole = role?.toLowerCase();
-    if (!Object.keys(roles).includes(normalizedRole))
-      return res
-        .status(400)
-        .json({ message: "Cargo inválido.", success: false });
     await User.updateOne(
       { email: email.toLowerCase() },
-      { $set: { role: normalizedRole, rolePosition: roles[normalizedRole] } }
+      { $set: { password: await bcrypt.hash(password, 10) } }
     );
-    return res
+    res
+      .status(200)
+      .json({ message: "Senha atualizada com sucesso.", success: true });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+export const setRole = async (req, res) => {
+  const { role, email } = req.body;
+  try {
+    const decoded = jwt.verify(req.cookies.token, process.env.SECRET_KEY);
+    const loggedUser = await User.findById(decoded.id);
+    if (roles[loggedUser.role] < 3)
+      return res
+        .status(403)
+        .json({ message: "Usuário sem permissão.", success: false });
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user || !Object.keys(roles).includes(role?.toLowerCase()))
+      return res
+        .status(404)
+        .json({
+          message: !user ? "Usuário não encontrado." : "Cargo inválido.",
+          success: false,
+        });
+    await User.updateOne(
+      { email: email.toLowerCase() },
+      {
+        $set: {
+          role: role.toLowerCase(),
+          rolePosition: roles[role.toLowerCase()],
+        },
+      }
+    );
+    res
       .status(200)
       .json({ message: "Cargo atualizado com sucesso.", success: true });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+    handleError(res, error);
   }
 };
 
 export const sendReport = async (req, res) => {
   const { name, email, description } = req.body;
-  const client = new MailtrapClient({ token: process.env.MAILTRAP_TOKEN }); // Use environment variable!
-
+  const client = new MailtrapClient({ token: process.env.MAILTRAP_TOKEN });
   try {
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html lang="pt-br">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Relatório de Erro</title>
-        <style>
-          body {
-            font-family: sans-serif;
-            line-height: 1.6;
-            color: #333;
-          }
-          .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-          }
-          h1 {
-            color: #007bff;
-          }
-          .field {
-            margin-bottom: 10px;
-          }
-          .label {
-            font-weight: bold;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1>Novo Relatório de Erro</h1>
-          <div class="field">
-            <span class="label">Nome:</span> ${name}
-          </div>
-          <div class="field">
-            <span class="label">Email:</span> ${email}
-          </div>
-          <div class="field">
-            <span class="label">Descrição:</span><br>
-            <p>${description.replace(/\n/g, "<br>")}</p> </div>
-        </div>
-      </body>
-      </html>
-    `;
-
     await client.send({
       from: {
         name: "Avodah | Error Report",
@@ -324,98 +234,72 @@ export const sendReport = async (req, res) => {
       },
       to: [{ email: "luizz.developer@gmail.com" }],
       subject: "Novo Relatório de Erro!",
-      html: htmlContent,
+      html: `<div><h1>Novo Relatório de Erro</h1><div><span>Nome:</span> ${name}</div><div><span>Email:</span> ${email}</div><div><span>Descrição:</span><br><p>${description.replace(
+        /\n/g,
+        "<br>"
+      )}</p></div></div>`,
       text: `Name: ${name}\nEmail: ${email}\nDescription: ${description}`,
     });
-
     res.status(200).send({ message: "Email enviado com sucesso!" });
   } catch (error) {
-    console.error("Erro ao enviar email:", error);
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+    handleError(res, error);
   }
 };
 
 export const getUserInfo = async (req, res) => {
-  const { id } = req.query;
   try {
-    const user = await User.findOne({ username: id });
+    const user = await User.findOne({ username: req.query.id });
     if (!user)
       return res.status(404).json({ message: "Usuário não encontrado." });
-    return { ok: true, user: user };
+    res.status(200).json({ ok: true, user });
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
-    console.log(error);
+    handleError(res, error);
   }
 };
 
 export const setProfilePicture = async (req, res) => {
+  const { user, picture } = req.body;
   try {
-    const { user, picture } = req.body;
-
-    if (!user || !user.email || !picture) {
-      return res.status(400).json({ message: "Dados incompletos." });
-    }
-
-    const email = user.email.trim();
-
-    const existingUser = await User.findOne({ email });
-    if (!existingUser) {
+    if (
+      !user ||
+      !user.email ||
+      !picture ||
+      !/^data:image\/(png|jpg|jpeg|gif|webp);base64,/.test(picture)
+    )
+      return res
+        .status(400)
+        .json({ message: "Dados incompletos ou formato de imagem inválido." });
+    const existingUser = await User.findOne({ email: user.email.trim() });
+    if (!existingUser)
       return res.status(404).json({ message: "Usuário não encontrado." });
-    }
-
-    if (!/^data:image\/(png|jpg|jpeg|gif|webp);base64,/.test(picture)) {
-      return res.status(400).json({ message: "Formato de imagem inválido." });
-    }
-
     await User.findOneAndUpdate(
-      { email },
+      { email: user.email.trim() },
       { profilePicture: picture },
       { new: true }
     );
-
-    return res.json({
+    res.json({
       message: "Foto de perfil atualizada com sucesso.",
       success: true,
     });
   } catch (error) {
-    console.error("Erro ao atualizar a foto de perfil:", error);
-    return res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+    handleError(res, error);
   }
 };
 
 export const sendPost = async (req, res) => {
   const { title, content, author, authorId } = req.body;
-  const postId = uuidv4();
   try {
-    const newPost = new Post({
+    const newPost = await Post.create({
       title,
       content,
       author,
       authorId,
-      postId,
+      postId: uuidv4(),
       image: req.file.path,
     });
-    await newPost.save();
     res.status(201).json(newPost);
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
-    console.log(error);
+    handleError(res, error);
   }
 };
 
@@ -424,45 +308,28 @@ export const getAllPosts = async (req, res) => {
     const posts = await Post.find().sort({ createdAt: -1 });
     res.status(200).json(posts);
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
-    console.log(error);
+    handleError(res, error);
   }
 };
 
 export const getPost = async (req, res) => {
-  const postId = req.params.postId;
   try {
-    const post = await Post.findOne({ postId: postId });
+    const post = await Post.findOne({ postId: req.params.postId });
     if (!post) return res.status(404).json({ message: "Post not found" });
     res.status(200).json(post);
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
-    console.log(error);
+    handleError(res, error);
   }
 };
 
 export const removePost = async (req, res) => {
-  const postId = req.params.postId;
   try {
-    const post = await Post.findOne({ postId: postId });
+    const post = await Post.findOne({ postId: req.params.postId });
     if (!post) return res.status(404).json({ message: "Post not found" });
-    await Post.deleteOne({ postId: postId });
+    await Post.deleteOne({ postId: req.params.postId });
     res.status(200).json({ message: "Post deleted successfully", ok: true });
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
-    console.log(error);
+    handleError(res, error);
   }
 };
 
@@ -472,28 +339,16 @@ export const generateVerse = async (req, res) => {
       method: "GET",
       credentials: "include",
     });
-    if (!response.ok) {
-      return res.status(400).json({
-        message: "Failed to generate verse.",
-        success: false,
-        data: null,
-      });
-    }
-    const data = await response.json();
-    if (!data.pk) {
-      return res.status(400).json({
-        message: "Failed to generate verse.",
-        success: false,
-        data: null,
-      });
-    }
-    return res.status(200).json({ data: data, success: true });
+    if (!response.ok || !(await response.json()).pk)
+      return res
+        .status(400)
+        .json({
+          message: "Failed to generate verse.",
+          success: false,
+          data: null,
+        });
+    res.status(200).json({ data: await response.json(), success: true });
   } catch (error) {
-    res.status(500).json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
-    console.log(error);
+    handleError(res, error);
   }
 };
