@@ -29,13 +29,11 @@ const cargos = {
 
 const handleError = (res, error) => {
   console.error(error);
-  res
-    .status(500)
-    .json({
-      message: "Erro interno no servidor.",
-      success: false,
-      error: error.message,
-    });
+  res.status(500).json({
+    message: "Erro interno no servidor.",
+    success: false,
+    error: error.message,
+  });
 };
 
 export const login = async (req, res) => {
@@ -47,16 +45,14 @@ export const login = async (req, res) => {
       !password ||
       !(await bcrypt.compare(password, user.password))
     ) {
-      return res
-        .status(401)
-        .json({
-          message: !user
-            ? "Usuário não encontrado."
-            : !password
-            ? "Senha não fornecida."
-            : "Senha inválida.",
-          success: false,
-        });
+      return res.status(401).json({
+        message: !user
+          ? "Usuário não encontrado."
+          : !password
+          ? "Senha não fornecida."
+          : "Senha inválida.",
+        success: false,
+      });
     }
     const token = jwt.sign(
       {
@@ -73,18 +69,16 @@ export const login = async (req, res) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: "None",
     });
-    res
-      .status(200)
-      .json({
-        message: "Usuário logado com sucesso.",
-        success: true,
-        token,
-        data: {
-          ...user._doc,
-          password: undefined,
-          role: cargos[user.rolePosition],
-        },
-      });
+    res.status(200).json({
+      message: "Usuário logado com sucesso.",
+      success: true,
+      token,
+      data: {
+        ...user._doc,
+        password: undefined,
+        role: cargos[user.rolePosition],
+      },
+    });
   } catch (error) {
     handleError(res, error);
   }
@@ -94,12 +88,10 @@ export const register = async (req, res) => {
   const { username, email, password } = req.body;
   try {
     if (!username || !email || !password)
-      return res
-        .status(400)
-        .json({
-          message: "Todos os campos devem ser preenchidos.",
-          success: false,
-        });
+      return res.status(400).json({
+        message: "Todos os campos devem ser preenchidos.",
+        success: false,
+      });
     if (
       await User.findOne({
         $or: [
@@ -118,13 +110,11 @@ export const register = async (req, res) => {
       role: cargos[roles["membro"]],
       rolePosition: roles["membro"],
     });
-    res
-      .status(201)
-      .json({
-        message: "Usuário criado com sucesso.",
-        success: true,
-        data: { ...user._doc, password: undefined },
-      });
+    res.status(201).json({
+      message: "Usuário criado com sucesso.",
+      success: true,
+      data: { ...user._doc, password: undefined },
+    });
   } catch (error) {
     handleError(res, error);
   }
@@ -134,13 +124,11 @@ export const isLogged = async (req, res) => {
   try {
     const decoded = jwt.verify(req.cookies.token, process.env.SECRET_KEY);
     const user = await User.findById(decoded.id);
-    res
-      .status(200)
-      .json({
-        message: "Usuário autenticado com sucesso.",
-        success: true,
-        data: { ...user._doc, password: undefined },
-      });
+    res.status(200).json({
+      message: "Usuário autenticado com sucesso.",
+      success: true,
+      data: { ...user._doc, password: undefined },
+    });
   } catch (error) {
     res
       .status(401)
@@ -200,12 +188,10 @@ export const setRole = async (req, res) => {
         .json({ message: "Usuário sem permissão.", success: false });
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user || !Object.keys(roles).includes(role?.toLowerCase()))
-      return res
-        .status(404)
-        .json({
-          message: !user ? "Usuário não encontrado." : "Cargo inválido.",
-          success: false,
-        });
+      return res.status(404).json({
+        message: !user ? "Usuário não encontrado." : "Cargo inválido.",
+        success: false,
+      });
     await User.updateOne(
       { email: email.toLowerCase() },
       {
@@ -335,18 +321,16 @@ export const removePost = async (req, res) => {
 
 export const generateVerse = async (req, res) => {
   try {
-    const response = await fetch("https://bolls.life/get-random-verse/NVIPT", {
+    const response = await fetch("https:bolls.life/get-random-verse/NVIPT", {
       method: "GET",
       credentials: "include",
     });
     if (!response.ok || !(await response.json()).pk)
-      return res
-        .status(400)
-        .json({
-          message: "Failed to generate verse.",
-          success: false,
-          data: null,
-        });
+      return res.status(400).json({
+        message: "Failed to generate verse.",
+        success: false,
+        data: null,
+      });
     res.status(200).json({ data: await response.json(), success: true });
   } catch (error) {
     handleError(res, error);
