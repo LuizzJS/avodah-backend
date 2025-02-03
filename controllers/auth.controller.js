@@ -260,7 +260,7 @@ export const setProfilePicture = async (req, res) => {
         picture,
       });
 
-    const existingUser = await User.findOne({ email: user.email.trim() });
+    const existingUser = await User.findOne({ email: user.email });
     if (!existingUser)
       return res.status(404).json({ message: "Usuário não encontrado." });
 
