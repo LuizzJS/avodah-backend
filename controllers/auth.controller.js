@@ -182,7 +182,7 @@ export const setRole = async (req, res) => {
   try {
     const decoded = jwt.verify(req.cookies.token, process.env.SECRET_KEY);
     const loggedUser = await User.findById(decoded.id);
-    if (roles[loggedUser.role] < 3)
+    if (!loggedUser || loggedUser.rolePosition !== 0)
       return res
         .status(403)
         .json({ message: "Usuário sem permissão.", success: false });
