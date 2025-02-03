@@ -247,24 +247,26 @@ export const getUserInfo = async (req, res) => {
 export const setProfilePicture = async (req, res) => {
   const { user, picture } = req.body;
   try {
+    const trimmedPicture = picture.trim();
+
     if (
       !user ||
       !user.email ||
-      !picture ||
-      !/^data:image\/(png|jpg|jpeg|gif|webp);base64,/.test(picture)
+      !trimmedPicture ||
+      !/^data:image\/(png|jpg|jpeg|gif|webp);base64,/.test(trimmedPicture)
     )
-      return res
-        .status(400)
-        .json({
-          message: "Dados incompletos ou formato de imagem inválido.",
-          picture,
-        });
+      return res.status(400).json({
+        message: "Dados incompletos ou formato de imagem inválido.",
+        picture,
+      });
+
     const existingUser = await User.findOne({ email: user.email.trim() });
     if (!existingUser)
       return res.status(404).json({ message: "Usuário não encontrado." });
+
     await User.findOneAndUpdate(
       { email: user.email.trim() },
-      { profilePicture: picture },
+      { profilePicture: trimmedPicture },
       { new: true }
     );
 
