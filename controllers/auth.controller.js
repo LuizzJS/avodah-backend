@@ -359,24 +359,39 @@ export const getUserInfo = async (req, res) => {
 export const setProfilePicture = async (req, res) => {
   try {
     const { user, picture } = req.body;
-    const existingUser = await User.findOne({ email: user.email });
-    if (!existingUser)
-      return res.status(404).json({ message: "Usuário não encontrado." });
 
-    await User.updateOne({ email: user.email }, { profilePicture: picture });
-    res.json({
+    if (!user || !user.email || !picture) {
+      return res.status(400).json({ message: "Dados incompletos." });
+    }
+
+    const email = user.email.trim();
+
+    const existingUser = await User.findOne({ email });
+    if (!existingUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    if (!/^data:image\/(png|jpg|jpeg|gif|webp);base64,/.test(picture)) {
+      return res.status(400).json({ message: "Formato de imagem inválido." });
+    }
+
+    await User.findOneAndUpdate(
+      { email },
+      { profilePicture: picture },
+      { new: true }
+    );
+
+    return res.json({
       message: "Foto de perfil atualizada com sucesso.",
       success: true,
     });
   } catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({
-        message: "Erro interno no servidor.",
-        success: false,
-        error: error.message,
-      });
+    console.error("Erro ao atualizar a foto de perfil:", error);
+    return res.status(500).json({
+      message: "Erro interno no servidor.",
+      success: false,
+      error: error.message,
+    });
   }
 };
 
