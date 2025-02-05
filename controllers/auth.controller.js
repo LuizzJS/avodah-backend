@@ -247,16 +247,9 @@ export const getUserInfo = async (req, res) => {
 export const setProfilePicture = async (req, res) => {
   const { user, picture } = req.body;
   try {
-    const trimmedPicture = String(picture).trim();
-    if (!user) return res.status(400).json({ message: "Dados incompletos." });
-    if (
-      !picture ||
-      !trimmedPicture ||
-      !trimmedPicture.startsWith("data:image/")
-    )
+    if (!user || !picture || !picture.trim().startsWith("data:image/"))
       return res.status(400).json({
         message: "Formato de imagem inválido ou dados incompletos.",
-        picture,
       });
 
     const existingUser = await User.findOne({ email: user.email });
@@ -265,7 +258,7 @@ export const setProfilePicture = async (req, res) => {
 
     await User.findOneAndUpdate(
       { email: user.email },
-      { profilePicture: trimmedPicture },
+      { profilePicture: picture.trim() },
       { new: true }
     );
 
@@ -274,7 +267,8 @@ export const setProfilePicture = async (req, res) => {
       success: true,
     });
   } catch (error) {
-    handleError(res, error);
+    console.error(error);
+    res.status(500).json({ message: "Erro interno do servidor." });
   }
 };
 
