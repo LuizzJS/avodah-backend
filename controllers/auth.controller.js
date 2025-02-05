@@ -325,13 +325,16 @@ export const generateVerse = async (req, res) => {
       method: "GET",
       credentials: "include",
     });
-    if (!response.ok || !(await response.json()).pk)
+    const responseBody = await response.json(); // Read the response body once
+
+    if (!response.ok || !responseBody.pk)
       return res.status(400).json({
         message: "Failed to generate verse.",
         success: false,
         data: null,
       });
-    res.status(200).json({ data: await response.json(), success: true });
+
+    res.status(200).json({ data: responseBody, success: true });
   } catch (error) {
     handleError(res, error);
   }
