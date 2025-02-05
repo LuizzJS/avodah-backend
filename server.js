@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import { connectDB } from "./database/connect.js";
 import authRoutes from "./routes/routes.js";
+import bodyParser from "body-parser";
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
+app.use(bodyParser.json({ limit: "10mb", extended: true }));
 app.use("/api/auth", authRoutes);
 
 connectDB();
