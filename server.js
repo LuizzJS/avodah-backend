@@ -30,8 +30,9 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
+app.use(bodyParser.json({ limit: "10mb" }));
+app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
 app.use(express.json());
-app.use(bodyParser.json({ limit: "10mb", extended: true }));
 app.use("/api/auth", authRoutes);
 
 connectDB();
