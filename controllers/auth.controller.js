@@ -14,18 +14,20 @@ const roles = {
   pastor: 1,
   vicepastor: 2,
   secretaria: 3,
-  lider: 4,
-  social: 5,
-  membro: 6,
+  department: 4,
+  lider: 5,
+  social: 6,
+  membro: 7,
 };
 const cargos = {
   0: "Desenvolvedor",
   1: "Pastor Presidente",
   2: "Pastor Vice-Presidente",
   3: "Secretário/a",
-  4: "Líder",
-  5: "Influenciador",
-  6: "Membro",
+  4: "Líder de Departamento",
+  5: "Líder",
+  6: "Influenciador",
+  7: "Membro",
 };
 
 const handleError = (res, error) => {
