@@ -276,6 +276,10 @@ export const setProfilePicture = async (req, res) => {
 
 export const sendPost = async (req, res) => {
   const { title, content, author, authorId } = req.body;
+  if (!title || !content || !author || !authorId)
+    return res
+      .status(400)
+      .json({ message: "Dados incompletos.", success: false });
   try {
     const newPost = await Post.create({
       title,
@@ -283,7 +287,6 @@ export const sendPost = async (req, res) => {
       author,
       authorId,
       postId: uuidv4(),
-      image: req.file.path,
     });
     res.status(201).json(newPost);
   } catch (error) {
