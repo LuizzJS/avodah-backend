@@ -330,7 +330,7 @@ export const generateVerse = async (req, res) => {
       method: "GET",
       credentials: "include",
     });
-    const responseBody = await response.json(); // Read the response body once
+    const responseBody = await response.json();
 
     if (!response.ok || !responseBody.pk)
       return res.status(400).json({
