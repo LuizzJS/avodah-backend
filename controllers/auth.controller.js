@@ -1,6 +1,7 @@
 import { User } from "../models/user.model.js";
 import { Post } from "../models/post.model.js";
 import { MailtrapClient } from "mailtrap";
+import Cookies from "js-cookie";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
@@ -19,6 +20,7 @@ const roles = {
   social: 6,
   membro: 7,
 };
+
 const cargos = {
   0: "Desenvolvedor",
   1: "Pastor Presidente",
@@ -39,11 +41,30 @@ const handleError = (res, error) => {
   });
 };
 
+const checkRequiredFields = (fields) => {
+  for (let field of fields) {
+    if (!field) return false;
+  }
+  return true;
+};
+
+const authenticateToken = (req, res, next) => {
+  const token =
+    Cookies.get("token") || req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "Token não fornecido." });
+
+  jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
+    if (err)
+      return res.status(403).json({ message: "Token inválido ou expirado." });
+    req.user = decoded;
+    next();
+  });
+};
+
 export const login = async (req, res) => {
   const { username, password } = req.body;
-
   try {
-    if (!username || !password) {
+    if (!checkRequiredFields([username, password])) {
       return res.status(400).json({
         message: "Usuário e senha são obrigatórios.",
         success: false,
@@ -51,7 +72,6 @@ export const login = async (req, res) => {
     }
 
     const user = await User.findOne({ username: username.toLowerCase() });
-
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({
         message: "Usuário ou senha inválidos.",
@@ -68,10 +88,10 @@ export const login = async (req, res) => {
         rolePosition: user.rolePosition,
       },
       process.env.SECRET_KEY,
-      { expiresIn: "7d" }
+      { expiresIn: "1h" }
     );
 
-    res.cookie("token", token, {
+    Cookies.set("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Lax",
@@ -89,19 +109,20 @@ export const login = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Erro no login:", error);
-    res.status(500).json({ message: "Erro no servidor.", success: false });
+    handleError(res, error);
   }
 };
 
 export const register = async (req, res) => {
   const { username, email, password } = req.body;
   try {
-    if (!username || !email || !password)
+    if (!checkRequiredFields([username, email, password])) {
       return res.status(400).json({
         message: "Todos os campos devem ser preenchidos.",
         success: false,
       });
+    }
+
     if (
       await User.findOne({
         $or: [
@@ -109,17 +130,21 @@ export const register = async (req, res) => {
           { email: email.toLowerCase() },
         ],
       })
-    )
+    ) {
       return res
         .status(400)
         .json({ message: "Usuário já existente.", success: false });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({
       username: username.toLowerCase(),
       email: email.toLowerCase(),
-      password: await bcrypt.hash(password, 10),
+      password: hashedPassword,
       role: cargos[roles["membro"]],
       rolePosition: roles["membro"],
     });
+
     res.status(201).json({
       message: "Usuário criado com sucesso.",
       success: true,
@@ -130,47 +155,11 @@ export const register = async (req, res) => {
   }
 };
 
-export const isLogged = async (req, res) => {
-  try {
-    const token =
-      req.cookies.token || String(req.headers.authorization)?.split(" ")[1];
-
-    if (!token) {
-      return res
-        .status(401)
-        .json({ message: "Token não fornecido.", success: false });
-    }
-
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
-    const user = await User.findById(decoded.id);
-
-    if (!user) {
-      return res
-        .status(404)
-        .json({ message: "Usuário não encontrado.", success: false });
-    }
-
-    res.status(200).json({
-      message: "Usuário autenticado com sucesso.",
-      success: true,
-      data: { ...user._doc, password: undefined },
-    });
-  } catch (error) {
-    console.error(error);
-    res
-      .status(401)
-      .json({ message: "Token inválido ou expirado.", success: false });
-  }
-};
+export const isLogged = authenticateToken;
 
 export const logout = async (req, res) => {
   try {
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      cacheControl: "no-cache",
-    });
+    Cookies.remove("token");
     res
       .status(200)
       .json({ message: "Usuário deslogado com sucesso.", success: true });
@@ -182,21 +171,25 @@ export const logout = async (req, res) => {
 export const setPassword = async (req, res) => {
   const { password, email } = req.body;
   try {
-    const decoded = jwt.verify(req.cookies.token, process.env.SECRET_KEY);
-    const loggedUser = await User.findById(decoded.id);
-    if (!loggedUser || loggedUser.rolePosition !== 0)
+    const loggedUser = await User.findById(req.user.id);
+    if (!loggedUser || loggedUser.rolePosition !== 0) {
       return res
         .status(403)
         .json({ message: "Usuário sem permissão.", success: false });
+    }
+
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user)
       return res
         .status(404)
         .json({ message: "Usuário não encontrado.", success: false });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
     await User.updateOne(
       { email: email.toLowerCase() },
-      { $set: { password: await bcrypt.hash(password, 10) } }
+      { $set: { password: hashedPassword } }
     );
+
     res
       .status(200)
       .json({ message: "Senha atualizada com sucesso.", success: true });
@@ -208,18 +201,23 @@ export const setPassword = async (req, res) => {
 export const setRole = async (req, res) => {
   const { role, email } = req.body;
   try {
-    const decoded = jwt.verify(req.cookies.token, process.env.SECRET_KEY);
-    const loggedUser = await User.findById(decoded.id);
-    if (!loggedUser || loggedUser.rolePosition !== 0)
+    const loggedUser = await User.findById(req.user.id);
+    if (!loggedUser || loggedUser.rolePosition !== 0) {
       return res
         .status(403)
         .json({ message: "Usuário sem permissão.", success: false });
+    }
+
     const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user || !Object.keys(roles).includes(role?.toLowerCase()))
-      return res.status(404).json({
-        message: !user ? "Usuário não encontrado." : "Cargo inválido.",
-        success: false,
-      });
+    if (!user || !Object.keys(roles).includes(role?.toLowerCase())) {
+      return res
+        .status(404)
+        .json({
+          message: !user ? "Usuário não encontrado." : "Cargo inválido.",
+          success: false,
+        });
+    }
+
     await User.updateOne(
       { email: email.toLowerCase() },
       {
@@ -364,7 +362,7 @@ export const generateVerse = async (req, res) => {
         data: null,
       });
 
-    res.status(200).json({ data: responseBody, success: true });
+    res.status(200).json({ data: responseBody });
   } catch (error) {
     handleError(res, error);
   }

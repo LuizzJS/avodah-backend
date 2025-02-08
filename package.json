@@ -18,6 +18,7 @@
     "cors": "latest",
     "dotenv": "latest",
     "express": "latest",
+    "js-cookie": "^3.0.5",
     "jsonwebtoken": "latest",
     "mailtrap": "latest",
     "mongoose": "latest",
