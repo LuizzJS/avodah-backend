@@ -131,14 +131,28 @@ export const register = async (req, res) => {
 
 export const isLogged = async (req, res) => {
   try {
+    if (!req.cookies.token) {
+      return res
+        .status(401)
+        .json({ message: "Token não fornecido.", success: false });
+    }
+
     const decoded = jwt.verify(req.cookies.token, process.env.SECRET_KEY);
     const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: "Usuário não encontrado.", success: false });
+    }
+
     res.status(200).json({
       message: "Usuário autenticado com sucesso.",
       success: true,
       data: { ...user._doc, password: undefined },
     });
   } catch (error) {
+    console.error("Erro ao verificar token:", error);
     res
       .status(401)
       .json({ message: "Token inválido ou expirado.", success: false });
