@@ -41,24 +41,22 @@ const handleError = (res, error) => {
 
 export const login = async (req, res) => {
   const { username, password } = req.body;
-
   try {
-    if (!username || !password) {
-      return res.status(400).json({
-        message: "Usuário e senha são obrigatórios.",
-        success: false,
-      });
-    }
-
     const user = await User.findOne({ username: username.toLowerCase() });
-
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (
+      !user ||
+      !password ||
+      !(await bcrypt.compare(password, user.password))
+    ) {
       return res.status(401).json({
-        message: "Usuário ou senha inválidos.",
+        message: !user
+          ? "Usuário não encontrado."
+          : !password
+          ? "Senha não fornecida."
+          : "Senha inválida.",
         success: false,
       });
     }
-
     const token = jwt.sign(
       {
         id: user._id,
@@ -67,16 +65,14 @@ export const login = async (req, res) => {
         role: user.role,
         rolePosition: user.rolePosition,
       },
-      process.env.SECRET_KEY,
-      { expiresIn: "7d" }
+      process.env.SECRET_KEY
     );
-
     res.cookie("token", token, {
       httpOnly: true,
       secure: true,
-      sameSite: "Lax",
+      sameSite: "None",
+      cacheControl: "no-cache",
     });
-
     res.status(200).json({
       message: "Usuário logado com sucesso.",
       success: true,
@@ -88,8 +84,7 @@ export const login = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Erro no login:", error);
-    res.status(500).json({ message: "Erro no servidor.", success: false });
+    handleError(res, error);
   }
 };
 
@@ -131,28 +126,14 @@ export const register = async (req, res) => {
 
 export const isLogged = async (req, res) => {
   try {
-    if (!req.cookies.token) {
-      return res
-        .status(401)
-        .json({ message: "Token não fornecido.", success: false });
-    }
-
     const decoded = jwt.verify(req.cookies.token, process.env.SECRET_KEY);
     const user = await User.findById(decoded.id);
-
-    if (!user) {
-      return res
-        .status(404)
-        .json({ message: "Usuário não encontrado.", success: false });
-    }
-
     res.status(200).json({
       message: "Usuário autenticado com sucesso.",
       success: true,
       data: { ...user._doc, password: undefined },
     });
   } catch (error) {
-    console.error("Erro ao verificar token:", error);
     res
       .status(401)
       .json({ message: "Token inválido ou expirado.", success: false });
