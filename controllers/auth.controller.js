@@ -131,7 +131,8 @@ export const register = async (req, res) => {
 
 export const isLogged = async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
+    const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+
     if (!token) {
       return res
         .status(401)
@@ -140,12 +141,20 @@ export const isLogged = async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
     const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: "Usuário não encontrado.", success: false });
+    }
+
     res.status(200).json({
       message: "Usuário autenticado com sucesso.",
       success: true,
       data: { ...user._doc, password: undefined },
     });
   } catch (error) {
+    console.error(error);
     res
       .status(401)
       .json({ message: "Token inválido ou expirado.", success: false });
