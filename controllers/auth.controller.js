@@ -1,12 +1,12 @@
 import { User } from "../models/user.model.js";
 import { Post } from "../models/post.model.js";
 import { MailtrapClient } from "mailtrap";
-import Cookies from "js-cookie";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import path from "path";
+import cors from "cors";
 
 dotenv.config({ path: path.resolve(".env") });
 
@@ -20,7 +20,6 @@ const roles = {
   social: 6,
   membro: 7,
 };
-
 const cargos = {
   0: "Desenvolvedor",
   1: "Pastor Presidente",
@@ -41,43 +40,20 @@ const handleError = (res, error) => {
   });
 };
 
-const checkRequiredFields = (fields) => {
-  for (let field of fields) {
-    if (!field) return false;
-  }
-  return true;
-};
-
-const authenticateToken = (req, res, next) => {
-  const token = Cookies.get("token");
-  if (!token) return res.status(401).json({ message: "Token não fornecido." });
-
-  jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
-    if (err)
-      return res.status(403).json({ message: "Token inválido ou expirado." });
-    req.user = decoded;
-    next();
-  });
-};
-
 export const login = async (req, res) => {
   const { username, password } = req.body;
   try {
-    if (!checkRequiredFields([username, password])) {
-      return res.status(400).json({
-        message: "Usuário e senha são obrigatórios.",
-        success: false,
-      });
-    }
-
     const user = await User.findOne({ username: username.toLowerCase() });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (
+      !user ||
+      !password ||
+      !(await bcrypt.compare(password, user.password))
+    ) {
       return res.status(401).json({
-        message: "Usuário ou senha inválidos.",
+        message: !user ? "Usuário não encontrado." : "Senha inválida.",
         success: false,
       });
     }
-
     const token = jwt.sign(
       {
         id: user._id,
@@ -87,16 +63,16 @@ export const login = async (req, res) => {
         rolePosition: user.rolePosition,
       },
       process.env.SECRET_KEY,
-      { expiresIn: "1h" }
+      { expiresIn: "7d" }
     );
-
-    Cookies.set("token", token, {
+    res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
       path: "/",
+      domain: process.env.COOKIE_DOMAIN || "yourdomain.com",
     });
-
     res.status(200).json({
       message: "Usuário logado com sucesso.",
       success: true,
@@ -115,13 +91,11 @@ export const login = async (req, res) => {
 export const register = async (req, res) => {
   const { username, email, password } = req.body;
   try {
-    if (!checkRequiredFields([username, email, password])) {
+    if (!username || !email || !password)
       return res.status(400).json({
         message: "Todos os campos devem ser preenchidos.",
         success: false,
       });
-    }
-
     if (
       await User.findOne({
         $or: [
@@ -129,21 +103,17 @@ export const register = async (req, res) => {
           { email: email.toLowerCase() },
         ],
       })
-    ) {
+    )
       return res
         .status(400)
         .json({ message: "Usuário já existente.", success: false });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({
       username: username.toLowerCase(),
       email: email.toLowerCase(),
-      password: hashedPassword,
+      password: await bcrypt.hash(password, 10),
       role: cargos[roles["membro"]],
       rolePosition: roles["membro"],
     });
-
     res.status(201).json({
       message: "Usuário criado com sucesso.",
       success: true,
@@ -154,143 +124,19 @@ export const register = async (req, res) => {
   }
 };
 
-export const isLogged = authenticateToken;
-
-export const logout = async (req, res) => {
+export const isLogged = async (req, res) => {
   try {
-    Cookies.remove("token");
-    res
-      .status(200)
-      .json({ message: "Usuário deslogado com sucesso.", success: true });
-  } catch (error) {
-    handleError(res, error);
-  }
-};
-
-export const setPassword = async (req, res) => {
-  const { password, email } = req.body;
-  try {
-    const loggedUser = await User.findById(req.user.id);
-    if (!loggedUser || loggedUser.rolePosition !== 0) {
-      return res
-        .status(403)
-        .json({ message: "Usuário sem permissão.", success: false });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user)
-      return res
-        .status(404)
-        .json({ message: "Usuário não encontrado.", success: false });
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    await User.updateOne(
-      { email: email.toLowerCase() },
-      { $set: { password: hashedPassword } }
-    );
-
-    res
-      .status(200)
-      .json({ message: "Senha atualizada com sucesso.", success: true });
-  } catch (error) {
-    handleError(res, error);
-  }
-};
-
-export const setRole = async (req, res) => {
-  const { role, email } = req.body;
-  try {
-    const loggedUser = await User.findById(req.user.id);
-    if (!loggedUser || loggedUser.rolePosition !== 0) {
-      return res
-        .status(403)
-        .json({ message: "Usuário sem permissão.", success: false });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user || !Object.keys(roles).includes(role?.toLowerCase())) {
-      return res.status(404).json({
-        message: !user ? "Usuário não encontrado." : "Cargo inválido.",
-        success: false,
-      });
-    }
-
-    await User.updateOne(
-      { email: email.toLowerCase() },
-      {
-        $set: {
-          role: role.toLowerCase(),
-          rolePosition: roles[role.toLowerCase()],
-        },
-      }
-    );
-    res
-      .status(200)
-      .json({ message: "Cargo atualizado com sucesso.", success: true });
-  } catch (error) {
-    handleError(res, error);
-  }
-};
-
-export const sendReport = async (req, res) => {
-  const { name, email, description } = req.body;
-  const client = new MailtrapClient({ token: process.env.MAILTRAP_TOKEN });
-  try {
-    await client.send({
-      from: {
-        name: "Avodah | Error Report",
-        email: "mailtrap@demomailtrap.com",
-      },
-      to: [{ email: "luizz.developer@gmail.com" }],
-      subject: "Novo Relatório de Erro!",
-      html: `<div><h1>Novo Relatório de Erro</h1><div><span>Nome:</span> ${name}</div><div><span>Email:</span> ${email}</div><div><span>Descrição:</span><br><p>${description.replace(
-        /\n/g,
-        "<br>"
-      )}</p></div></div>`,
-      text: `Name: ${name}\nEmail: ${email}\nDescription: ${description}`,
-    });
-    res.status(200).send({ message: "Email enviado com sucesso!" });
-  } catch (error) {
-    handleError(res, error);
-  }
-};
-
-export const getUserInfo = async (req, res) => {
-  try {
-    const user = await User.findOne({ username: req.query.id });
-    if (!user)
-      return res.status(404).json({ message: "Usuário não encontrado." });
-    res.status(200).json({ ok: true, user });
-  } catch (error) {
-    handleError(res, error);
-  }
-};
-
-export const setProfilePicture = async (req, res) => {
-  const { user, picture } = req.body;
-  try {
-    if (!user || !picture || !picture.trim().startsWith("data:image/"))
-      return res.status(400).json({
-        message: "Formato de imagem inválido ou dados incompletos.",
-      });
-
-    const existingUser = await User.findOne({ email: user.email });
-    if (!existingUser)
-      return res.status(404).json({ message: "Usuário não encontrado." });
-
-    await User.findOneAndUpdate(
-      { email: user.email },
-      { profilePicture: picture.trim() },
-      { new: true }
-    );
-
-    res.json({
-      message: "Foto de perfil atualizada com sucesso.",
+    const decoded = jwt.verify(req.cookies.token, process.env.SECRET_KEY);
+    const user = await User.findById(decoded.id);
+    res.status(200).json({
+      message: "Usuário autenticado com sucesso.",
       success: true,
+      data: { ...user._doc, password: undefined },
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Erro interno do servidor." });
+    res
+      .status(401)
+      .json({ message: "Token inválido ou expirado.", success: false });
   }
 };
 
@@ -323,16 +169,6 @@ export const getAllPosts = async (req, res) => {
   }
 };
 
-export const getPost = async (req, res) => {
-  try {
-    const post = await Post.findOne({ postId: req.params.postId });
-    if (!post) return res.status(404).json({ message: "Post not found" });
-    res.status(200).json(post);
-  } catch (error) {
-    handleError(res, error);
-  }
-};
-
 export const removePost = async (req, res) => {
   try {
     const post = await Post.findOne({ postId: req.params.postId });
@@ -346,20 +182,18 @@ export const removePost = async (req, res) => {
 
 export const generateVerse = async (req, res) => {
   try {
-    const response = await fetch("https:bolls.life/get-random-verse/NVIPT", {
+    const response = await fetch("https://bolls.life/get-random-verse/NVIPT", {
       method: "GET",
       credentials: "include",
     });
     const responseBody = await response.json();
-
     if (!response.ok || !responseBody.pk)
       return res.status(400).json({
         message: "Failed to generate verse.",
         success: false,
         data: null,
       });
-
-    res.status(200).json({ data: responseBody });
+    res.status(200).json({ data: responseBody, success: true });
   } catch (error) {
     handleError(res, error);
   }
