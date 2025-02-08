@@ -134,13 +134,11 @@ export const isLogged = async (req, res) => {
       data: { ...user._doc, password: undefined },
     });
   } catch (error) {
-    res
-      .status(401)
-      .json({
-        message: "Token inválido ou expirado.",
-        success: false,
-        message: error.message,
-      });
+    res.status(401).json({
+      message: "Token inválido ou expirado.",
+      success: false,
+      message: error.message,
+    });
   }
 };
 
