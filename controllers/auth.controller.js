@@ -69,8 +69,9 @@ export const login = async (req, res) => {
     );
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       sameSite: "None",
+      cacheControl: "no-cache",
     });
     res.status(200).json({
       message: "Usuário logado com sucesso.",
@@ -145,6 +146,7 @@ export const logout = async (req, res) => {
       httpOnly: true,
       secure: true,
       sameSite: "None",
+      cacheControl: "no-cache",
     });
     res
       .status(200)
