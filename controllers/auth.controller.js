@@ -49,8 +49,7 @@ const checkRequiredFields = (fields) => {
 };
 
 const authenticateToken = (req, res, next) => {
-  const token =
-    Cookies.get("token") || req.headers.authorization?.split(" ")[1];
+  const token = Cookies.get("token");
   if (!token) return res.status(401).json({ message: "Token não fornecido." });
 
   jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
@@ -210,12 +209,10 @@ export const setRole = async (req, res) => {
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user || !Object.keys(roles).includes(role?.toLowerCase())) {
-      return res
-        .status(404)
-        .json({
-          message: !user ? "Usuário não encontrado." : "Cargo inválido.",
-          success: false,
-        });
+      return res.status(404).json({
+        message: !user ? "Usuário não encontrado." : "Cargo inválido.",
+        success: false,
+      });
     }
 
     await User.updateOne(
