@@ -131,7 +131,8 @@ export const register = async (req, res) => {
 
 export const isLogged = async (req, res) => {
   try {
-    const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+    const token =
+      req.cookies.token || String(req.headers.authorization)?.split(" ")[1];
 
     if (!token) {
       return res
