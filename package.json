@@ -16,6 +16,7 @@
     "bcryptjs": "latest",
     "cookie-parser": "latest",
     "cors": "latest",
+    "cross-env": "^7.0.3",
     "dotenv": "latest",
     "express": "latest",
     "js-cookie": "^3.0.5",
